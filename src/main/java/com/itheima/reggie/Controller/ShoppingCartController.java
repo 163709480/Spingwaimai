@@ -109,7 +109,6 @@ public class ShoppingCartController {
             int i = number - 1;
             shop.setNumber(i);
             shoppingCartService.updateById(shop);
-
             return R.success("删除成功");
 
         }else if(shop.getNumber()==0){

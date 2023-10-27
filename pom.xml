@@ -96,6 +96,39 @@
     <artifactId>druid-spring-boot-starter</artifactId>
     <version>1.2.15</version>
   </dependency>
+<!--引入AOP依赖-->
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-aspects</artifactId>
+      <version>5.2.15.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjweaver</artifactId>
+      <version>1.9.9</version>
+    </dependency>
+
+    <dependency>
+      <groupId>aopalliance</groupId>
+      <artifactId>aopalliance</artifactId>
+      <version>1.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjtools</artifactId>
+      <version>1.9.9</version>
+    </dependency>
+    <dependency>
+      <groupId>cglib</groupId>
+      <artifactId>cglib</artifactId>
+      <version>3.3.0</version>
+    </dependency>
+
+
+
+
 
 </dependencies>
 
@@ -104,16 +137,16 @@
 
     <!-- 如果不添加此节点mybatis的mapper.xml文件都会被漏掉。 -->
 
-<!--      <resources>-->
-<!--        <resource>-->
-<!--          <directory>src/main/java</directory>-->
-<!--          <includes>-->
-<!--            <include>**/*.properties</include>-->
-<!--            <include>**/*.xml</include>-->
-<!--          </includes>-->
-<!--          <filtering>false</filtering>-->
-<!--        </resource>-->
-<!--      </resources>-->
+      <resources>
+        <resource>
+          <directory>src/main/java</directory>
+          <includes>
+            <include>**/*.properties</include>
+            <include>**/*.xml</include>
+          </includes>
+          <filtering>false</filtering>
+        </resource>
+      </resources>
 
 
 

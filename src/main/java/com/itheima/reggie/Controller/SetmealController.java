@@ -17,11 +17,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PreDestroy;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,6 +40,8 @@ public class SetmealController {
     private SetmealDishService setmealDishService;
     @Autowired
     private DishService dishService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @GetMapping("/page")
     public R<Page> disPage(int page,int pageSize){
@@ -115,9 +119,23 @@ public class SetmealController {
     }
     @GetMapping("/list")
     public R<List<Setmeal>>SetmealQuerry(String categoryId,int status){
+        List<Setmeal> list=null;
+        //动态key
+        String keys="dish_"+categoryId+"_"+status;
+        Object o = redisTemplate.opsForValue().get(keys);
+//        log.info("o.to = {}",o.toString());
+        list = (List<Setmeal>) redisTemplate.opsForValue().get(keys);
+
+         if(list!=null){
+             return R.success(list);
+         }
+
+
         LambdaQueryWrapper<Setmeal>lqwsetmeal = new LambdaQueryWrapper<>();
         lqwsetmeal.eq(categoryId!=null,Setmeal::getCategoryId,categoryId).eq(Setmeal::getStatus,status);
-        List<Setmeal> list = setmealService.list(lqwsetmeal);
+       list = setmealService.list(lqwsetmeal);
+       //第一个数据必须设置keys值
+       redisTemplate.opsForValue().set(keys,list,60, TimeUnit.MINUTES);
 
 
         return R.success(list);

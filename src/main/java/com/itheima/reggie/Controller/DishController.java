@@ -3,6 +3,7 @@ package com.itheima.reggie.Controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.sql.StringEscape;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
 import com.itheima.reggie.Service.CategoryService;
 import com.itheima.reggie.Service.DishFlavorService;
 import com.itheima.reggie.Service.DishService;
@@ -20,12 +21,15 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -47,6 +51,8 @@ public class DishController {
     @Autowired
 
     private SetmealService setmealService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
 
 
@@ -125,42 +131,44 @@ public class DishController {
         log.info("dishDto的值为 = {}",dishDto);
 //        dishFlavor.setDishId(emoloyee);
             dishService.saveWeithFlover(dishDto);
+        //清理所有缓存数据
+        Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);
 
 //        dishService.save(dishDto);
        return   R.success("添加菜品成功");
     }
 
-//    @GetMapping("/list")
-//    public R<List<DishDto>>categoryR(String categoryId){
-//       LambdaQueryWrapper<Dish>lqw= new LambdaQueryWrapper<>();
-//       LambdaQueryWrapper<DishFlavor>dishfalavor= new LambdaQueryWrapper<>();
-//       List<DishDto>dishDtoList = new ArrayList<>();
-//
-//       lqw.eq(categoryId!=null,Dish::getCategoryId,categoryId);
-//        //查询状态为1
-//       lqw.eq(Dish::getStatus,1);
-////       dishfalavor.eq(categoryId!=null,DishFlavor::getDishId)
-//
-//       lqw.orderByAsc(Dish::getSort).orderByDesc(Dish::getUpdateTime);
-//        List<Dish> list = dishService.list(lqw);
-//        list.stream().map((item)->{
-//
-//
-//        })
-//
-//
-//
-//        return R.success(list);
-//    }
+
     @GetMapping("/list")
-    public R<List<DishDto>>categoryR(String categoryId){
+
+    public R<List<DishDto>>categoryR(String categoryId,String status){
+        List<DishDto>dishDtoList = null;
+
+        //通过菜品id和status状态来查询数据
+       // 动态获取Key
+        String keys ="dish_"+categoryId+"_"+status;
+      //在redis里面取keys // 反序列化
+       dishDtoList= (List<DishDto>) redisTemplate.opsForValue().get(keys);
+
+
+        //如果keys能获取到数据 则直接return
+        if(dishDtoList!=null){
+            return R.success(dishDtoList);
+        }
+
+
+        //如果获取不到数据则执行查询语句
+
+
+
         LambdaQueryWrapper<Dish>lqw= new LambdaQueryWrapper<>();
         lqw.eq(categoryId!=null,Dish::getCategoryId,categoryId);
 //        //查询状态为1
        lqw.eq(Dish::getStatus,1);
         lqw.orderByAsc(Dish::getSort).orderByDesc(Dish::getUpdateTime);
         List<Dish> list = dishService.list(lqw);
-        List<DishDto>dishDtoList = null;
+
        dishDtoList= list.stream().map((item)->{
         DishDto dishDto = new DishDto();
         BeanUtils.copyProperties(item,dishDto);
@@ -176,8 +184,12 @@ public class DishController {
             return dishDto;
 
        }).collect(Collectors.toList());
+       //查询完成后的数据存储到redis当中
+        redisTemplate.opsForValue().set(keys,dishDtoList,60,TimeUnit.MINUTES);
 
+        System.out.println("程序结束");
         return R.success(dishDtoList);
+
     }
     /**
      * 修改数据
@@ -189,8 +201,15 @@ public class DishController {
         dishService.updateWithFlavor(dishDto);
 
 
+    //清理所有缓存数据
+        Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);
+        //精确清理  清理某个分类下面缓存
+        String key="dish_"+dishDto.getCategoryId()+"_1";
+        redisTemplate.delete(key);
 
-        return null;
+        return R.success("更新成功");
+
     }
 
 

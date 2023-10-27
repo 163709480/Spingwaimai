@@ -9,24 +9,34 @@ import com.itheima.reggie.utils.ValidateCodeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 @Slf4j
 @RestController
 @RequestMapping("/user")
 public class UserController {
     @Autowired
     private UserService userService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
 
     @PostMapping ("/login")
     public R<User>login(@RequestBody Map<String, String> mp, HttpSession session){
         String phone =mp.get("phone");
         String code = mp.get("code");
-        Object codeShession = session.getAttribute(phone);
+        //从session取出验证码
+//        Object codeShession = session.getAttribute(phone);
+
+        //从redis中获取缓存的验证码
+        Object codeShession = redisTemplate.opsForValue().get(phone);
+
         log.info("session的数值为 = {}",codeShession.toString());
         log.info("phone的值的数值为 = {}",phone);
 
@@ -48,7 +58,10 @@ public class UserController {
             }
             session.setAttribute("user",us.getId());
 
+            //如果用户登录成功，删除Redis中缓存的验证码
+            redisTemplate.delete(phone);
             return R.success(us);
+
 
         }
         return R.error("失败");
@@ -67,7 +80,9 @@ public class UserController {
            String code = ValidateCodeUtils.generateValidateCode(6).toString();
 //           String code="111111";
             log.info("验证码code的值为 = {}",code);
-           session.setAttribute(phone,code);
+//           session.setAttribute(phone,code);
+            //将生成的验证码缓存到Redis种，并设置有效期为5分种
+            redisTemplate.opsForValue().set(phone,code,5, TimeUnit.MINUTES);
             return R.success("短信发送成功");
 
        }

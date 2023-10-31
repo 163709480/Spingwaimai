@@ -16,6 +16,8 @@ import com.itheima.reggie.entry.SetmealDish;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -117,6 +119,7 @@ public class SetmealController {
 
         return R.success(byWithDish);
     }
+    @Cacheable(value = "dishlist",key = "#categoryId+'_'+#status")
     @GetMapping("/list")
     public R<List<Setmeal>>SetmealQuerry(String categoryId,int status){
         List<Setmeal> list=null;
@@ -141,12 +144,13 @@ public class SetmealController {
         return R.success(list);
     }
 
-
+    @CacheEvict(value = "dishlist",allEntries = true)
     @PostMapping
     public R<String>addSort(@RequestBody SetmealDto setmealDto){
       setmealService.saveWithDish(setmealDto);
         return R.success("新增套餐成功");
     }
+    @CacheEvict(value = "dishlist",allEntries = true)
     @DeleteMapping
     public R<String>delete(String[] ids){
 

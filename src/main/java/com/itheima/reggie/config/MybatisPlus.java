@@ -17,4 +17,7 @@ public class MybatisPlus {
       mpi.addInnerInterceptor(new PaginationInnerInterceptor());
       return mpi;
    }
+
+
+
 }

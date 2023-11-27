@@ -20,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -141,21 +143,21 @@ public class DishController {
 
 
     @GetMapping("/list")
-
+    @Cacheable(value = "licon",key = "#categoryId+'_'+#status")
     public R<List<DishDto>>categoryR(String categoryId,String status){
         List<DishDto>dishDtoList = null;
 
         //通过菜品id和status状态来查询数据
        // 动态获取Key
-        String keys ="dish_"+categoryId+"_"+status;
+//        String keys ="dish_"+categoryId+"_"+status;
       //在redis里面取keys // 反序列化
-       dishDtoList= (List<DishDto>) redisTemplate.opsForValue().get(keys);
+//       dishDtoList= (List<DishDto>) redisTemplate.opsForValue().get(keys);
 
 
         //如果keys能获取到数据 则直接return
-        if(dishDtoList!=null){
-            return R.success(dishDtoList);
-        }
+//        if(dishDtoList!=null){
+//            return R.success(dishDtoList);
+//        }
 
 
         //如果获取不到数据则执行查询语句
@@ -185,7 +187,7 @@ public class DishController {
 
        }).collect(Collectors.toList());
        //查询完成后的数据存储到redis当中
-        redisTemplate.opsForValue().set(keys,dishDtoList,60,TimeUnit.MINUTES);
+//        redisTemplate.opsForValue().set(keys,dishDtoList,60,TimeUnit.MINUTES);
 
         System.out.println("程序结束");
         return R.success(dishDtoList);
@@ -196,17 +198,18 @@ public class DishController {
      * @return
      */
     @PutMapping
+    @CacheEvict(value = "licon",allEntries = true)
     public R<String>UpdateDate(@RequestBody DishDto dishDto){
 
         dishService.updateWithFlavor(dishDto);
 
 
     //清理所有缓存数据
-        Set keys = redisTemplate.keys("dish_*");
-        redisTemplate.delete(keys);
-        //精确清理  清理某个分类下面缓存
-        String key="dish_"+dishDto.getCategoryId()+"_1";
-        redisTemplate.delete(key);
+//        Set keys = redisTemplate.keys("dish_*");
+//        redisTemplate.delete(keys);
+//        //精确清理  清理某个分类下面缓存
+//        String key="dish_"+dishDto.getCategoryId()+"_1";
+//        redisTemplate.delete(key);
 
         return R.success("更新成功");
 
